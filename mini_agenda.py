@@ -3,7 +3,7 @@ import subprocess as sp
 import sqlite3 as sq
 
 
-VERSION = 0.2
+VERSION = 0.3
 
 
 def parse_file_name() -> str:
@@ -76,9 +76,10 @@ def add_contact(name: str) -> None:
 
     c.execute(
         f'''
-            INSERT INTO {tname.upper()} VALUES (?,?,?,?,?,?)
-        ''',
-        (1, fnam, lnam, pnum, emai, note),
+            INSERT INTO {tname.upper()} (FIRST_NAME, LAST_NAME, PHONE_NUMBER, EMAIL, NOTE)
+            VALUES ("{fnam}","{lnam}","{pnum}","{emai}","{note}")
+        '''  # ,
+        # (fnam, lnam, pnum, emai, note),
     )
 
     db.commit()
@@ -88,51 +89,53 @@ def add_contact(name: str) -> None:
     return
 
 
-def search_contact(name: str, tag: str) -> str:
+def search_contact(name: str, tag: str, pattern: str) -> list:
 
     # dbname = parse_file_name()
     tname = name.split('.')[0]
 
     db = sq.connect(name)
     c = db.cursor()
+
     c.execute(
         f'''
-            SELECT * FROM {tname.upper()} 
-                WHERE {tag}                    
-        '''
+            SELECT * FROM {tname.upper()} WHERE {tag} = ?                    
+        ''',
+        (pattern,),
     )
+
     a = c.fetchall()
-    print(a)
 
     c.close()
     db.close()
 
-    return
+    return a
 
 
 def remove_contact(name: str) -> bool:
     pass
 
 
-def print_contact(name: str, tag: str, print_all=False) -> None:
+def print_contact(name: str, row: str, print_all=False) -> None:
 
     tname = name.split('.')[0]
 
     db = sq.connect(name)
     c = db.cursor()
 
-    if print_all == True:
-        c.execute(
+    if row == '' and print_all == True:
+        t = c.execute(
             f'''
-                SELECT * FROM {tname.upper()} ORDER BY FIRST_NAME
+            SELECT * FROM {tname.upper()} ORDER BY ID
             '''
-        )
-    else:
-        c.execute(
-            f'''
-                SELECT {tag.upper}
-            '''
-        )
+        ).fetchall()
+    # else:
+    #     t = search_contact()
+
+    for x in t:
+        print(x)
+
+    return
 
 
 def menu() -> str:
@@ -158,7 +161,7 @@ def menu() -> str:
     return opt
 
 
-def search_menu() -> str:
+def search_menu(db: str) -> str:
 
     print(
         '''
@@ -168,15 +171,32 @@ def search_menu() -> str:
         2.- Last Name.
         3.- Phone Number.
         4.- eMail.
-        0.- Return to main menu.       
+        R.- Return to main menu.       
         '''
     )
     opt = input('-> ')
     if opt in ('1', '2', '3', '4'):
-        param = input('Search string: ')
-        return param
-    elif opt == '0':
-        return opt
+        pattern = input('Search string: ')
+
+        if opt == '1':
+            a = search_contact(db, 'FIRST_NAME', pattern)
+            print(a)
+            return
+        elif opt == '2':
+            a = search_contact(db, 'LAST_NAME', pattern)
+            print(a)
+            return
+        elif opt == '3':
+            a = search_contact(db, 'PHONE_NUMBER', pattern)
+            print(a)
+            return
+        elif opt == '4':
+            a = search_contact(db, 'EMAIL', pattern)
+            print(a)
+            return
+
+    elif opt.upper() == 'R':
+        return
     else:
         print('Invalid option!!')
         search_menu()
@@ -187,49 +207,66 @@ def search_menu() -> str:
 def call_function(opt: str) -> None:
 
     if opt == '1':
-        print('Calling create_db() function...')
+        # Calling create_db() function...
+
         n = parse_file_name()
-        m = create_db(n)
-        print(n, m)
+        if dbfile_exists(n):
+            print('DataBase already exists!!')
+            # return
+        else:
+            create_db(n)
+        # print(n, m)
 
     elif opt == '2':
-        print('Calling add_contact() function...')
+        # Calling add_contact() function...
+
         n = parse_file_name()
         if dbfile_exists(n):
             add_contact(n)
+            print('Contact added!!')
         else:
             print('DataBase does not exist...')
             return
 
     elif opt == '3':
-        print('Calling search_contact() function...')
-        fname = parse_file_name(input('Data Base name: '))
+        # Calling search_contact() function...
+
+        fname = parse_file_name()
         if not dbfile_exists(fname):
             print(
-                f'Data Base {fname} does not exist, first most be create it.\nExiting!!'
+                f'Data Base {fname} does not exist, first most be created.\nTry again!!'
             )
-            exit(5)
-
-        o = search_menu()
-        if o == '0':
             return
-        search_contact(fname, o)
+        else:
+            search_menu(fname)
+            return
 
     elif opt == '4':
-        print('Calling remove_contact() function...')
+        # Calling remove_contact() function...
+        return
 
     elif opt == '5':
-        print('Calling print_contact() function...')
+        # Calling print_contact() function...
+
+        n = parse_file_name()
+        if dbfile_exists(n):
+            print_contact(n, row='', print_all=True)
+            return
+        else:
+            print('DataBase file does not exist...')
+            return
 
     else:
         print('Invalid parameter...')
-        exit(5)
+        # return
 
     return
 
 
 def main():
+
     while True:
+
         if os.uname()[0].lower() == 'linux':
             sp.run('clear')
         elif os.uname()[0].lower() == 'nt':
