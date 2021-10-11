@@ -1,9 +1,17 @@
 import os, sys
 import subprocess as sp
 import sqlite3 as sq
+from sqlite3 import Error as SQLiteError
 
 
-VERSION = 0.3
+VERSION = 0.4
+
+
+##############################################
+# Helper functions
+##############################################
+
+# Parse file name function
 
 
 def parse_file_name() -> str:
@@ -21,10 +29,88 @@ def parse_file_name() -> str:
     return fname
 
 
+# DB file exists function
+
+
 def dbfile_exists(n: str) -> bool:
 
     # ext = '.sq3'
     return os.path.exists(n)
+
+
+# Call functions
+
+
+def call_function(opt: str) -> None:
+
+    if opt == '1':
+        # Calling create_db() function...
+
+        n = parse_file_name()
+        if dbfile_exists(n):
+            print('DataBase already exists!!')
+            # return
+        else:
+            create_db(n)
+        # print(n, m)
+
+    elif opt == '2':
+        # Calling add_contact() function...
+
+        n = parse_file_name()
+        if dbfile_exists(n):
+            add_contact(n)
+            print('Contact added!!')
+        else:
+            print('DataBase does not exist...')
+            return
+
+    elif opt == '3':
+        # Calling search_contact() function...
+
+        n = parse_file_name()
+        if not dbfile_exists(n):
+            print(f'Data Base {n} does not exist, first most be created.\nTry again!!')
+        else:
+            search_menu(n)
+
+        return
+
+    elif opt == '4':
+        # Calling remove_contact() function...
+
+        n = parse_file_name()
+        if dbfile_exists(n):
+            c = int(input('Which contact id?: '))
+            remove_contact(n, c)
+        else:
+            print(f'Data Base {n} does not exist, first most be created.\nTry again!!')
+
+        return
+
+    elif opt == '5':
+        # Calling print_contact() function...
+
+        n = parse_file_name()
+        if dbfile_exists(n):
+            print_contact(n, row='', print_all=True)
+            return
+        else:
+            print('DataBase file does not exist...')
+            return
+
+    else:
+        print('Invalid parameter...')
+        # return
+
+    return
+
+
+##################################################
+# Principal functions
+##################################################
+
+# Create DB function
 
 
 def create_db(name: str) -> str:
@@ -60,6 +146,9 @@ def create_db(name: str) -> str:
         return None
 
 
+# Add contact function
+
+
 def add_contact(name: str) -> None:
 
     # fname = parse_file_name(name)
@@ -89,6 +178,9 @@ def add_contact(name: str) -> None:
     return
 
 
+# Search contact function
+
+
 def search_contact(name: str, tag: str, pattern: str) -> list:
 
     # dbname = parse_file_name()
@@ -112,8 +204,29 @@ def search_contact(name: str, tag: str, pattern: str) -> list:
     return a
 
 
-def remove_contact(name: str) -> bool:
-    pass
+# Remove contact function
+
+
+def remove_contact(name: str, _id: int) -> bool:
+
+    tname = name.split('.')[0]
+
+    db = sq.connect(name)
+    c = db.cursor()
+    c.execute(
+        f'''
+        DELETE FROM {tname.upper()} WHERE ID = ?
+        ''',
+        (_id,),
+    )
+    c.close()
+    db.commit()
+    db.close()
+
+    return
+
+
+# Print contact function
 
 
 def print_contact(name: str, row: str, print_all=False) -> None:
@@ -138,12 +251,16 @@ def print_contact(name: str, row: str, print_all=False) -> None:
     return
 
 
+# Menu function
+
+
 def menu() -> str:
 
     opt = None
     print(
         f'''
         Welcome to MiniAgenda v{VERSION}, a Python3 script.
+        With SQLite v{sq.version}
         What do you want to do?
 
         Options are:
@@ -159,6 +276,9 @@ def menu() -> str:
     )
     opt = input('Your option: ')
     return opt
+
+
+# Search menu function
 
 
 def search_menu(db: str) -> str:
@@ -204,63 +324,7 @@ def search_menu(db: str) -> str:
     return
 
 
-def call_function(opt: str) -> None:
-
-    if opt == '1':
-        # Calling create_db() function...
-
-        n = parse_file_name()
-        if dbfile_exists(n):
-            print('DataBase already exists!!')
-            # return
-        else:
-            create_db(n)
-        # print(n, m)
-
-    elif opt == '2':
-        # Calling add_contact() function...
-
-        n = parse_file_name()
-        if dbfile_exists(n):
-            add_contact(n)
-            print('Contact added!!')
-        else:
-            print('DataBase does not exist...')
-            return
-
-    elif opt == '3':
-        # Calling search_contact() function...
-
-        fname = parse_file_name()
-        if not dbfile_exists(fname):
-            print(
-                f'Data Base {fname} does not exist, first most be created.\nTry again!!'
-            )
-            return
-        else:
-            search_menu(fname)
-            return
-
-    elif opt == '4':
-        # Calling remove_contact() function...
-        return
-
-    elif opt == '5':
-        # Calling print_contact() function...
-
-        n = parse_file_name()
-        if dbfile_exists(n):
-            print_contact(n, row='', print_all=True)
-            return
-        else:
-            print('DataBase file does not exist...')
-            return
-
-    else:
-        print('Invalid parameter...')
-        # return
-
-    return
+# Main function
 
 
 def main():
@@ -289,4 +353,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except SQLiteError as e:
+        print(e)
+    except Exception as err:
+        print(err)
