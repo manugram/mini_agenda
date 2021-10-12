@@ -1,2 +1,9 @@
 # mini_agenda
 A mini agenda written in python 3, only for personal learning purpose...
+In fact, I've been lerning three tecnologies with this mini project, and four if we count GitHub...
+
+This mini agenda was written using Python 3, SQLite and Git to manage modifications. And a bunch of spagetti code... xD
+
+I could use this like a before and after of my learning process, maybe...
+
+Anyway, lock and code!!
